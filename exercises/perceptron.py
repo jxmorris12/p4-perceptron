@@ -30,9 +30,9 @@ class Regex(Packet):
                    BitField("result", 3, 2) ]
 
 class Perceptron(Packet):
-  fields_desc = [ BitField("weight", 0, 128),
-                   BitField("bias", 0, 128), 
-                   BitField("input", 0, 128),
+   fields_desc = [ BitField("current_state", 0, 15),
+                   BitField("W_num_bytes", 0, 7), 
+                   BitField("x_num_bytes", 0, 7),
    ]
 
 bind_layers(Ether, Regex, type=0x9999)
@@ -48,11 +48,14 @@ def main():
     iface = get_if()
     src_mac = get_if_hwaddr(iface)
     W = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+    W_bytes = W.tobytes()
     x = np.array([[1], [1], [1]], dtype=np.float32) * 3
-    
+    x_bytes = x.tobytes()
     while(True):
         pkt = Ether(src=src_mac, dst='ff:ff:ff:ff:ff:ff')
         pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
+        pkt = pkt / Raw(load=W_bytes)
+        pkt = pkt / Raw(load=x_bytes)
         print "[sending packet...]"
         print_pkt(pkt)
         pkt = srp1(pkt, iface=iface, verbose=False)
