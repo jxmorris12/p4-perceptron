@@ -35,20 +35,20 @@ def get_if():
 
 class Perceptron(Packet):
     fields_desc = [ 
-        StrFixedLenField("weight", None, length=256), # weight matrix (256 bytes)
-        StrFixedLenField("bias", None, length=16),    # bias vector (16 bytes)
-        StrFixedLenField("x", None, length=16),       # input vector (16 bytes) - also scratchpad
         # Weird gotcha: the BitField bit counts have to accumulate to a multiple of 8,
         # so they can form full bytes.
         BitField("step_acc", 0, 7),                   # step accumulator (Max of 17 steps)
-        BitField("finished", 1, 1),                   # Boolean that should flip when the computation finishes
+        BitField("finished", 0, 1),                   # Boolean that should flip when the computation finishes
+        StrFixedLenField("weight", None, length=256), # weight matrix (256 bytes)
+        StrFixedLenField("bias", None, length=16),    # bias vector (16 bytes)
+        StrFixedLenField("x", None, length=16),       # input vector (16 bytes) - also scratchpad
     ] 
 
 bind_layers(Ether, Perceptron, type=0x9999)
 
 def print_pkt(pkt):
-    pkt.show()
-    print()
+    # pkt.show()
+    # print()
     pkt.show2()
     sys.stdout.flush()
     
@@ -66,34 +66,39 @@ def main():
     # convert to bits
     #pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
     step = 0
-    pkt_result = None
+    in_pkt_result = None
     while True:
         pkt = Ether(src=src_mac, dst='ff:ff:ff:ff:ff:ff')
         # Perceptron(weight=W.tobytes(),  bias=b.tobytes(), x=x.tobytes())
-        if pkt_result:
+        if in_pkt_result:
             # subsequent packet (reuse acc)
             pkt = pkt / Perceptron(
                 weight=W.tobytes(), bias=b.tobytes(), x=x_mat.tobytes(),
-                step_acc=pkt_result.step_acc, finished=0
+                step_acc=in_pkt_result.step_acc, finished=0
             )
         else:
             # first packet
             # print('mat lengths:', len(W.tobytes()), len(b.tobytes()), len(x_mat.tobytes()))
             pkt = pkt / Perceptron(
-                weight=W.tobytes(), bias=b.tobytes(), x=x_mat.tobytes(),
-                step_acc=0, finished=0
+                step_acc=0, finished=0,
+                weight=W.tobytes(), bias=b.tobytes(),
+                x=x_mat.tobytes(),
             )
-        print("[sending packet...]")
-        print_pkt(pkt)
+        print(f"[sending packet #{step}...]")
+        # print_pkt(pkt)
         in_pkt = srp1(pkt, iface=iface, verbose=False)
+        assert len(in_pkt) == len(pkt), f"Got {len(in_pkt)} bytes back, sent {len(pkt)}"
+        print_pkt(in_pkt)
         in_pkt_result = in_pkt[Perceptron]
         # breakpoint()
         # TODO can I pass this through without parsing it to an nparray?
         x_mat = np.array([bool(bit) for bit in in_pkt_result.x], dtype=bool)
 
         step += 1
+        print(in_pkt.step_acc, '//', in_pkt_result.finished)
         if in_pkt_result.finished == 1:
             print(f"finished at step {step}!")
+            break
         else:
             print(f"continuing step {step}")
     print('result from switch:', x_mat)

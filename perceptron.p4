@@ -1,7 +1,6 @@
 #include <core.p4>
 #include <v1model.p4>
 
-const bit<8> TYPE_NULL = 0x00;
 const bit<16> TYPE_PERCEPTRON = 0x9999;
 
 header ethernet_t {
@@ -10,12 +9,12 @@ header ethernet_t {
     bit<16> etherType;
 }
 
-header perceptron_t {
-    bit<256> weight;        // Weight matrix of linear layer
-    bit<16> bias;           // Bias vector of linear layer
-    bit<16> x;              // input & output vector
-    bit<7> step_acc;        // Accumulator (step counter) - used to loop in p4 prog
-    bit<1> result;          // Result (set to 1 when looping ends)
+header perceptron_t { 
+    bit<7> step_acc;          // Accumulator (step counter) - used to loop in p4 prog
+    bit<1> finished;          // Starts at 0, set to 1 when looping ends
+    bit<256> weight;          // Weight matrix of linear layer
+    bit<16> bias;             // Bias vector of linear layer
+    bit<16> x;                // input & output vector
 }
 
 struct metadata { }
@@ -41,6 +40,7 @@ parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout st
 
     state parse_perceptron {
         packet.extract(hdr.perceptron);
+        transition accept;
     }
 }
 
@@ -52,11 +52,16 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
     apply {
         // update counters
         hdr.perceptron.step_acc = hdr.perceptron.step_acc + 1;
-        if(hdr.perceptron.step_acc == 17) {
-            hdr.perceptron.result = 1;
-        } 
 
-        
+        // do one step of work
+        if(hdr.perceptron.step_acc < 16) {
+        }
+        else if(hdr.perceptron.step_acc == 17) {
+        }  
+        else {
+            hdr.perceptron.finished = 1;
+        }
+
         // forward back out the same port
         standard_metadata.egress_spec = standard_metadata.ingress_port;
     }
