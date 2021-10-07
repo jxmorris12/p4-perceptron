@@ -11,9 +11,9 @@ header ethernet_t {
 }
 
 header perceptron_t {
-    bit<15> current_state; // Current state of the DFA
-    bit<7> string_length;  // Length of the string being matched
-    bit<2> result;         // Result indicating whether string was matched 0 = no, 1 = yes, {2,3} = unknown
+    bit<256> weight;        // Weight matrix of linear layer
+    bit<16> bias;           // Bias vector of linear layer
+    bit<16> result;         // input vector
 }
 
 struct metadata { }
@@ -48,7 +48,7 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 
 control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
     apply {
-        // TODO fill in step to get next values and request the proper operation, then advance state
+        // TODO multiply and add, perceptron stuff here, plus activation func!
         
         // forward back out the same port
         standard_metadata.egress_spec = standard_metadata.ingress_port;

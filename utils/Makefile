@@ -1,8 +1,8 @@
-P4_INCLUDE_PATH = ../utils/p4include
+P4_INCLUDE_PATH = ./utils/p4include
 P4C = petr4
 P4C_ARGS += typecheck -I $(P4_INCLUDE_PATH)
 
-RUN_SCRIPT = ../utils/run_exercise.py
+RUN_SCRIPT = ./utils/run_exercise.py
 
 SOURCE = $(wildcard *.p4)
 

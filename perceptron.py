@@ -24,15 +24,15 @@ def get_if():
         exit(1)
     return iface
 
-class Regex(Packet):
-   fields_desc = [ BitField("current_state", 0, 15),
-                   BitField("string_length", 0, 7),
-                   BitField("result", 3, 2) ]
+# class Regex(Packet):
+#    fields_desc = [ BitField("current_state", 0, 15),
+#                    BitField("string_length", 0, 7),
+#                    BitField("result", 3, 2) ]
 
 class Perceptron(Packet):
-  fields_desc = [ BitField("weight", 0, 128),
-                   BitField("bias", 0, 128), 
-                   BitField("input", 0, 128),
+  fields_desc = [ BitField("weight", 0, 256),
+                   BitField("bias", 0, 16), 
+                   BitField("input", 0, 16),
    ]
 
 bind_layers(Ether, Regex, type=0x9999)
@@ -47,26 +47,26 @@ def main():
         exit(1)
     iface = get_if()
     src_mac = get_if_hwaddr(iface)
-    W = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
-    x = np.array([[1], [1], [1]], dtype=np.float32) * 3
+
+    # Create numpy arrays
+    W = np.identity(16, dtype=bool)
+    x = np.random.rand(16).round().astype(bool)
+    b = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], dtype=bool)
+    # convert to bits
+    W = W.tobytes()
+    x = w.tobytes()
+    b = b.tobytes()
+
+    pkt = Ether(src=src_mac, dst='ff:ff:ff:ff:ff:ff')
+    #pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
+    pkt = pkt / Perceptron(weight=W, bias=b, input=x)
+    print "[sending packet...]"
+    print_pkt(pkt)
+    pkt = srp1(pkt, iface=iface, verbose=False)
+    pkt_result = pkt[Perceptron].output
     
-    while(True):
-        pkt = Ether(src=src_mac, dst='ff:ff:ff:ff:ff:ff')
-        pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
-        print "[sending packet...]"
-        print_pkt(pkt)
-        pkt = srp1(pkt, iface=iface, verbose=False)
-        state = pkt[Regex].current_state
-        bits = pkt[Regex].string_length
-        message = pkt[Raw].load
-        if not bits:
-            if pkt[Regex].result == 1:
-                print "[accept!]"
-            elif pkt[Regex].result == 0:
-                print "[reject!]"
-            else:
-                print "[unknown]"
-            break
+    print('Result:', pkt_result)
+    print('np result:', W @ x + b)
         
 if __name__ == '__main__':
     main()
