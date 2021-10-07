@@ -14,6 +14,8 @@ header perceptron_t {
     bit<256> weight;        // Weight matrix of linear layer
     bit<16> bias;           // Bias vector of linear layer
     bit<16> x;              // input & output vector
+    bit<7> step_acc;        // Accumulator (step counter) - used to loop in p4 prog
+    bit<1> result;          // Result (set to 1 when looping ends)
 }
 
 struct metadata { }
@@ -48,7 +50,12 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
 
 control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
     apply {
-        // TODO multiply and add, perceptron stuff here, plus activation func!
+        // update counters
+        hdr.perceptron.step_acc = hdr.perceptron.step_acc + 1;
+        if(hdr.perceptron.step_acc == 17) {
+            hdr.perceptron.result = 1;
+        } 
+
         
         // forward back out the same port
         standard_metadata.egress_spec = standard_metadata.ingress_port;
@@ -66,7 +73,6 @@ control MyComputeChecksum(inout headers hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
 	    // TODO: fill in code to deparse packet
-        // Don't put hdr.char back here - aka don't do: packet.emit(hdr.char);
         packet.emit(hdr.ethernet);
         packet.emit(hdr.perceptron);
     }
