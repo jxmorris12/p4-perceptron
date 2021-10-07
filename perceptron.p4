@@ -13,7 +13,7 @@ header ethernet_t {
 header perceptron_t {
     bit<256> weight;        // Weight matrix of linear layer
     bit<16> bias;           // Bias vector of linear layer
-    bit<16> result;         // input vector
+    bit<16> x;              // input & output vector
 }
 
 struct metadata { }

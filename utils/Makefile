@@ -21,7 +21,7 @@ build:
 	$(P4C) $(P4C_ARGS) $(SOURCE)
 
 controller:
-	PYTHONPATH=../utils python3 $(CONTROLLER)
+	python3 $(CONTROLLER)
 
 clean: stop
 	rm -f *.pcap

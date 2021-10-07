@@ -1,3 +1,6 @@
+import sys
+sys.path.append('./utils')
+
 from petr4 import App
 from petr4.runtime import *
 from topo import *
