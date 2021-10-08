@@ -21,6 +21,8 @@ sys.path.append('/usr/lib/python3/dist-packages')
 
 import numpy as np
 
+np.random.seed(42) # set seed
+
 def get_if():
     ifs=get_if_list()
     iface=None
@@ -41,7 +43,7 @@ class Perceptron(Packet):
         BitField("finished", 0, 1),                   # Boolean that should flip when the computation finishes
         StrFixedLenField("weight", None, length=256), # weight matrix (256 bytes)
         StrFixedLenField("bias", None, length=16),    # bias vector (16 bytes)
-        StrFixedLenField("x", None, length=16),       # input vector (16 bytes) - also scratchpad
+        StrFixedLenField("x", None, length=16),       # input vector (16 bytes)
     ] 
 
 bind_layers(Ether, Perceptron, type=0x9999)
@@ -61,8 +63,11 @@ def main():
 
     # Create numpy arrays
     W = np.identity(16, dtype=bool)
+    W[0] = 1
+    W[7] = 1
     x_mat = np.random.rand(16).round().astype(bool)
     b = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], dtype=bool)
+    init_result_mat = np.zeros(16, dtype=bool)
     # convert to bits
     #pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
     step = 0
@@ -72,10 +77,7 @@ def main():
         # Perceptron(weight=W.tobytes(),  bias=b.tobytes(), x=x.tobytes())
         if in_pkt_result:
             # subsequent packet (reuse acc)
-            pkt = pkt / Perceptron(
-                weight=W.tobytes(), bias=b.tobytes(), x=x_mat.tobytes(),
-                step_acc=in_pkt_result.step_acc, finished=0
-            )
+            pkt = pkt / in_pkt_result
         else:
             # first packet
             # print('mat lengths:', len(W.tobytes()), len(b.tobytes()), len(x_mat.tobytes()))
@@ -88,21 +90,27 @@ def main():
         # print_pkt(pkt)
         in_pkt = srp1(pkt, iface=iface, verbose=False)
         assert len(in_pkt) == len(pkt), f"Got {len(in_pkt)} bytes back, sent {len(pkt)}"
+        print(f"[received packet #{step}...]")
         print_pkt(in_pkt)
         in_pkt_result = in_pkt[Perceptron]
         # breakpoint()
-        # TODO can I pass this through without parsing it to an nparray?
-        x_mat = np.array([bool(bit) for bit in in_pkt_result.x], dtype=bool)
-
         step += 1
         print(in_pkt.step_acc, '//', in_pkt_result.finished)
         if in_pkt_result.finished == 1:
-            print(f"finished at step {step}!")
+            print(f"finished after step {step}!")
             break
         else:
             print(f"continuing step {step}")
-    print('result from switch:', x_mat)
-    print('np result:', W @ x_mat + b)
+    x_mat_result = np.array([bool(bit) for bit in in_pkt_result.x], dtype=bool)
+    print('result from switch:', x_mat_result)
+    print('b =', b)
+    print('W @ x_mat =', W @ x_mat)
+    true_val = W @ x_mat + b
+    print('W @ x_mat + b =', true_val)
+    print('eq:', (x_mat_result == true_val))
+    print('eq:', (x_mat_result == true_val).sum() / len(x_mat_result))
+    print('true_eq:', (x_mat_result == True).sum() / len(x_mat_result))
+    breakpoint()
         
 if __name__ == '__main__':
     main()
