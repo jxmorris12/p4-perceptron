@@ -21,7 +21,7 @@ sys.path.append('/usr/lib/python3/dist-packages')
 
 import numpy as np
 
-np.random.seed(42) # set seed
+# np.random.seed(42) # set seed
 
 def get_if():
     ifs=get_if_list()
@@ -41,19 +41,37 @@ class Perceptron(Packet):
         # so they can form full bytes.
         BitField("step_acc", 0, 7),                   # step accumulator (Max of 17 steps)
         BitField("finished", 0, 1),                   # Boolean that should flip when the computation finishes
-        StrFixedLenField("weight", None, length=256), # weight matrix (256 bytes)
-        StrFixedLenField("bias", None, length=16),    # bias vector (16 bytes)
-        StrFixedLenField("x", None, length=16),       # input vector (16 bytes)
+        # BitField("weight", 0, 256),                   # weight matrix (256 bits)
+        # BitField("bias", 0, 16),                      # bias matrix (16 bits)
+        # BitField("x", 0, 16),                         # input vector (16 bits)
+
+        StrFixedLenField("weight", None, length=32), # weight matrix (256 bits)
+        StrFixedLenField("bias", None, length=2),    # bias vector (16 bits)
+        StrFixedLenField("x", None, length=2),       # input vector (16 bits)
     ] 
 
 bind_layers(Ether, Perceptron, type=0x9999)
 
 def print_pkt(pkt):
-    # pkt.show()
-    # print()
+    pkt.show()
+    print()
     pkt.show2()
     sys.stdout.flush()
-    
+
+def a2b(arr: np.ndarray) -> str:
+    """ array to bytes int """   
+    return np.packbits(arr).tobytes()
+
+def b2a(arr: bytes, size: int) -> np.ndarray:
+    """decode bytes hex int object back to ndarray"""
+    assert len(arr) * 8 == size
+    # calculate each boolean value
+    out_arr = np.zeros(size, dtype=bool)
+    for i in range(size):
+        N = arr[len(arr) - 1 - i//8]
+        out_arr[i] = bool((N >> (i%8)) & 1)
+    return out_arr[::-1]
+
 def main():
     # if len(sys.argv)<2:
     # print 'usage: regex.py <string>'
@@ -83,11 +101,12 @@ def main():
             # print('mat lengths:', len(W.tobytes()), len(b.tobytes()), len(x_mat.tobytes()))
             pkt = pkt / Perceptron(
                 step_acc=0, finished=0,
-                weight=W.tobytes(), bias=b.tobytes(),
-                x=x_mat.tobytes(),
+                weight=a2b(W),
+                bias=a2b(b),
+                x=a2b(x_mat),
             )
         print(f"[sending packet #{step}...]")
-        # print_pkt(pkt)
+        print_pkt(pkt)
         in_pkt = srp1(pkt, iface=iface, verbose=False)
         assert len(in_pkt) == len(pkt), f"Got {len(in_pkt)} bytes back, sent {len(pkt)}"
         print(f"[received packet #{step}...]")
@@ -101,7 +120,9 @@ def main():
             break
         else:
             print(f"continuing step {step}")
-    x_mat_result = np.array([bool(bit) for bit in in_pkt_result.x], dtype=bool)
+    # TODO fix unpacking.
+    print(in_pkt_result.x)
+    x_mat_result = b2a(in_pkt_result.x, 16)
     print('result from switch:', x_mat_result)
     print('b =', b)
     print('W @ x_mat =', W @ x_mat)
@@ -111,6 +132,15 @@ def main():
     print('eq:', (x_mat_result == true_val).sum() / len(x_mat_result))
     print('true_eq:', (x_mat_result == True).sum() / len(x_mat_result))
     breakpoint()
-        
+
+def test_binary_methods():
+    n = np.random.rand(16).round().astype(bool)
+    print(n)
+    b = a2b(n)
+    print(b)
+    b_hat = b2a(b, 16)
+    print(b_hat)
+
 if __name__ == '__main__':
+    # test_binary_methods()
     main()

@@ -48,14 +48,14 @@ control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
     apply { }
 }
 
-bit<1> _g256(in bit<256> x, in bit<16> idx) {
+bit<16> _g256(in bit<256> x, in bit<16> idx) {
     /** get a single bit from a bit<256> **/
-    return (bit<1>)((x >> idx) & 1);
+    return (bit<16>)((x >> idx) & 1);
 }
 
-bit<1> _g16(in bit<16> x, in bit<4> idx) {
+bit<16> _g16(in bit<16> x, in bit<4> idx) {
     /** get a single bit from a bit<16> **/
-    return (bit<1>)((x >> idx) & 1);
+    return (bit<16>)((x >> idx) & 1);
 }
 
 control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
@@ -66,106 +66,114 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
     register<bit<1>>(16) scratchpad;
 
     apply {
-
         if(hdr.perceptron.step_acc < 16) {
             bit<16> j = ((bit<16>)hdr.perceptron.step_acc) * 16;
             // a single row from MLP computation (W @ x.T) + b
-            bit<1> result = (
-                  _g256(hdr.perceptron.weight, j + 00) * _g16(hdr.perceptron.x, 00) // + _g16(hdr.perceptron.bias, 00)
-                + _g256(hdr.perceptron.weight, j + 01) * _g16(hdr.perceptron.x, 01) // + _g16(hdr.perceptron.bias, 01)
-                + _g256(hdr.perceptron.weight, j + 02) * _g16(hdr.perceptron.x, 02) // + _g16(hdr.perceptron.bias, 02)
-                + _g256(hdr.perceptron.weight, j + 03) * _g16(hdr.perceptron.x, 03) // + _g16(hdr.perceptron.bias, 03)
-                + _g256(hdr.perceptron.weight, j + 04) * _g16(hdr.perceptron.x, 04) // + _g16(hdr.perceptron.bias, 04)
-                + _g256(hdr.perceptron.weight, j + 05) * _g16(hdr.perceptron.x, 05) // + _g16(hdr.perceptron.bias, 05)
-                + _g256(hdr.perceptron.weight, j + 06) * _g16(hdr.perceptron.x, 06) // + _g16(hdr.perceptron.bias, 06)
-                + _g256(hdr.perceptron.weight, j + 07) * _g16(hdr.perceptron.x, 07) // + _g16(hdr.perceptron.bias, 07)
-                + _g256(hdr.perceptron.weight, j + 08) * _g16(hdr.perceptron.x, 08) // + _g16(hdr.perceptron.bias, 08)
-                + _g256(hdr.perceptron.weight, j + 09) * _g16(hdr.perceptron.x, 09) // + _g16(hdr.perceptron.bias, 09)
-                + _g256(hdr.perceptron.weight, j + 10) * _g16(hdr.perceptron.x, 10) // + _g16(hdr.perceptron.bias, 10)
-                + _g256(hdr.perceptron.weight, j + 11) * _g16(hdr.perceptron.x, 11) // + _g16(hdr.perceptron.bias, 11)
-                + _g256(hdr.perceptron.weight, j + 12) * _g16(hdr.perceptron.x, 12) // + _g16(hdr.perceptron.bias, 12)
-                + _g256(hdr.perceptron.weight, j + 13) * _g16(hdr.perceptron.x, 13) // + _g16(hdr.perceptron.bias, 13)
-                + _g256(hdr.perceptron.weight, j + 14) * _g16(hdr.perceptron.x, 14) // + _g16(hdr.perceptron.bias, 14)
-                + _g256(hdr.perceptron.weight, j + 15) * _g16(hdr.perceptron.x, 15) // + _g16(hdr.perceptron.bias, 15)
-            );
+            bit<1> result = (bit<1>)((
+                  _g256(hdr.perceptron.weight, j + 00) * _g16(hdr.perceptron.x, 00)
+                + _g256(hdr.perceptron.weight, j + 01) * _g16(hdr.perceptron.x, 01)
+                + _g256(hdr.perceptron.weight, j + 02) * _g16(hdr.perceptron.x, 02)
+                + _g256(hdr.perceptron.weight, j + 03) * _g16(hdr.perceptron.x, 03)
+                + _g256(hdr.perceptron.weight, j + 04) * _g16(hdr.perceptron.x, 04)
+                + _g256(hdr.perceptron.weight, j + 05) * _g16(hdr.perceptron.x, 05)
+                + _g256(hdr.perceptron.weight, j + 06) * _g16(hdr.perceptron.x, 06)
+                + _g256(hdr.perceptron.weight, j + 07) * _g16(hdr.perceptron.x, 07)
+                + _g256(hdr.perceptron.weight, j + 08) * _g16(hdr.perceptron.x, 08)
+                + _g256(hdr.perceptron.weight, j + 09) * _g16(hdr.perceptron.x, 09)
+                + _g256(hdr.perceptron.weight, j + 10) * _g16(hdr.perceptron.x, 10)
+                + _g256(hdr.perceptron.weight, j + 11) * _g16(hdr.perceptron.x, 11)
+                + _g256(hdr.perceptron.weight, j + 12) * _g16(hdr.perceptron.x, 12)
+                + _g256(hdr.perceptron.weight, j + 13) * _g16(hdr.perceptron.x, 13)
+                + _g256(hdr.perceptron.weight, j + 14) * _g16(hdr.perceptron.x, 14)
+                + _g256(hdr.perceptron.weight, j + 15) * _g16(hdr.perceptron.x, 15)
+            ) > 0);
+            // bit<1> o = 1;
+            // bit<1> z = 0;
+            // WHY DOES 1+1 = False in p4??!
+            // bit<1> result = (bit<1>)((
+            //     o + o
+            // ) > 0);
+
             // Store in the register
-            scratchpad.write((bit<32>)j, result);
+            scratchpad.write((bit<32>)hdr.perceptron.step_acc, result);
         }
         else {
             // 
             // Overwrite x with contents of the scratchpad.
             // 
+            hdr.perceptron.x = 0;
             bit<1> r;
             scratchpad.read(r, 0);
-            r = _g16(hdr.perceptron.bias, 00);
-            // r = r + _g16(hdr.perceptron.bias, 00);
-            hdr.perceptron.x = (bit<16>)((r));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 00)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 0);
             scratchpad.read(r, 1);
-            r = _g16(hdr.perceptron.bias, 01);
-            // r = r + _g16(hdr.perceptron.bias, 01);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 1));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 01)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 1);
             scratchpad.read(r, 2);
-            r = _g16(hdr.perceptron.bias, 02);
-            // r = r + _g16(hdr.perceptron.bias, 02);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 2));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 02)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 2);
             scratchpad.read(r, 3);
-            r = _g16(hdr.perceptron.bias, 03);
-            // r = r + _g16(hdr.perceptron.bias, 03);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 3));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 03)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 3);
             scratchpad.read(r, 4);
-            r = _g16(hdr.perceptron.bias, 04);
-            // r = r + _g16(hdr.perceptron.bias, 04);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 4));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 04)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 4);
             scratchpad.read(r, 5);
-            r = _g16(hdr.perceptron.bias, 05);
-            // r = r + _g16(hdr.perceptron.bias, 05);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 5));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 05)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 5);
             scratchpad.read(r, 6);
-            r = _g16(hdr.perceptron.bias, 06);
-            // r = r + _g16(hdr.perceptron.bias, 06);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 6));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 06)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 6);
             scratchpad.read(r, 7);
-            r = _g16(hdr.perceptron.bias, 07);
-            // r = r + _g16(hdr.perceptron.bias, 07);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 7));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 07)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 7);
             scratchpad.read(r, 8);
-            r = _g16(hdr.perceptron.bias, 08);
-            // r = r + _g16(hdr.perceptron.bias, 08);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 8));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 08)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 8);
             scratchpad.read(r, 9);
-            r = _g16(hdr.perceptron.bias, 09);
-            // r = r + _g16(hdr.perceptron.bias, 09);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 9));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 09)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 9);
             scratchpad.read(r, 10);
-            r = _g16(hdr.perceptron.bias, 10);
-            // r = r + _g16(hdr.perceptron.bias, 10);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 10));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 10)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 10);
             scratchpad.read(r, 11);
-            r = _g16(hdr.perceptron.bias, 11);
-            // r = r + _g16(hdr.perceptron.bias, 11);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 11));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 11)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 11);
             scratchpad.read(r, 12);
-            r = _g16(hdr.perceptron.bias, 12);
-            // r = r + _g16(hdr.perceptron.bias, 12);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 12));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 12)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 12);
             scratchpad.read(r, 13);
-            r = _g16(hdr.perceptron.bias, 13);
-            // r = r + _g16(hdr.perceptron.bias, 13);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 13));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 13)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 13);
             scratchpad.read(r, 14);
-            r = _g16(hdr.perceptron.bias, 14);
-            // r = r + _g16(hdr.perceptron.bias, 14);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 14));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 14)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 14);
             scratchpad.read(r, 15);
-            r = _g16(hdr.perceptron.bias, 15);
-            // r = r + _g16(hdr.perceptron.bias, 15);
-            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)(r << 15));
+            r = (bit<1>)(((bit<16>)r + _g16(hdr.perceptron.bias, 15)) > 0);
+            hdr.perceptron.x = hdr.perceptron.x + ((bit<16>)r << 15);
 
+            // <g256_tests>
+            // bit<256> thirteen = 13;
+            // hdr.perceptron.x = (bit<16>)_g256(thirteen, 3); // should be 1
+            // hdr.perceptron.x = (bit<16>)_g256(thirteen, 4); // should be 0
+            // hdr.perceptron.x = (bit<16>)_g256(thirteen, 3) << 4; // should be 16
+            // </g256_tests>
 
-            //  temp (testing)
-            hdr.perceptron.x = 0;
-            hdr.perceptron.weight = 0;
-            hdr.perceptron.bias = 0;
+            // <g16_tests>
+            bit<16> thirteen = 13;
+            // hdr.perceptron.x = (bit<16>)_g16(thirteen, 3); // should be 1
+            // hdr.perceptron.x = (bit<16>)_g16(thirteen, 4); // should be 0
+            // hdr.perceptron.x = (bit<16>)_g16(thirteen, 3) << 4; // should be 16
+            // hdr.perceptron.x = (bit<16>)_g16(hdr.perceptron.bias, 3); // should be 1
+            // hdr.perceptron.x = (bit<16>)_g16(hdr.perceptron.bias, 4); // should be 0
+            // hdr.perceptron.x = (bit<16>)_g16(hdr.perceptron.bias, 15); // should be 1
+            // hdr.perceptron.x = (bit<16>)(
+                    // (_g16(hdr.perceptron.bias, 00) << 0)
+                // +   (_g16(hdr.perceptron.bias, 01) << 1)
+                //    ((bit<16>)_g16(hdr.perceptron.bias, 01) << 1)
+            // );
+            // </g16_tests>
+
             // 
             // TODO apply activation func and/or batchnorm here?
             // 
