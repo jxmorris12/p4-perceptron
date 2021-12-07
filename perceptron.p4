@@ -90,9 +90,11 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
             // bit<1> o = 1;
             // bit<1> z = 0;
             // WHY DOES 1+1 = False in p4??!
+            // Well, to make up for it I need to do casting and add this > 0 check, which is 
+            // quite inconvenient.
             // bit<1> result = (bit<1>)((
             //     o + o
-            // ) > 0);
+            // ) > 0); // THIS IS 0!! (Unlike the numpy boolean arithmetic)
 
             // Store in the register
             scratchpad.write((bit<32>)hdr.perceptron.step_acc, result);

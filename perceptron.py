@@ -123,15 +123,14 @@ def main():
     # TODO fix unpacking.
     print(in_pkt_result.x)
     x_mat_result = b2a(in_pkt_result.x, 16)
+    # print('b =', b)
+    # print('W @ x_mat =', W @ x_mat)
     print('result from switch:', x_mat_result)
-    print('b =', b)
-    print('W @ x_mat =', W @ x_mat)
     true_val = W @ x_mat + b
     print('W @ x_mat + b =', true_val)
-    print('eq:', (x_mat_result == true_val))
     print('eq:', (x_mat_result == true_val).sum() / len(x_mat_result))
-    print('true_eq:', (x_mat_result == True).sum() / len(x_mat_result))
-    breakpoint()
+    # print('true_eq:', (x_mat_result == True).sum() / len(x_mat_result))
+    # breakpoint()
 
 def test_binary_methods():
     n = np.random.rand(16).round().astype(bool)
