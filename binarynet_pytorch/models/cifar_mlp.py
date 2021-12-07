@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torchvision
 
 from .binarized_modules import BinarizeLinear
 

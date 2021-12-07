@@ -41,10 +41,7 @@ class Perceptron(Packet):
         # so they can form full bytes.
         BitField("step_acc", 0, 7),                   # step accumulator (Max of 17 steps)
         BitField("finished", 0, 1),                   # Boolean that should flip when the computation finishes
-        # BitField("weight", 0, 256),                   # weight matrix (256 bits)
-        # BitField("bias", 0, 16),                      # bias matrix (16 bits)
-        # BitField("x", 0, 16),                         # input vector (16 bits)
-
+        # These are strings of ascii characters, each one of which is a BYTE...
         StrFixedLenField("weight", None, length=32), # weight matrix (256 bits)
         StrFixedLenField("bias", None, length=2),    # bias vector (16 bits)
         StrFixedLenField("x", None, length=2),       # input vector (16 bits)
@@ -58,8 +55,20 @@ def print_pkt(pkt):
     pkt.show2()
     sys.stdout.flush()
 
-def a2b(arr: np.ndarray) -> str:
+def _binarize(arr: np.ndarray) -> np.ndarray:
+    """convert {-1, 1} to {0, 1}"""
+    assert arr.dtype == 'int64'
+    return arr > 0
+
+def _unbinarize(arr: np.ndarray) -> np.ndarray:
+    """convert {0, 1} to {-1, 1}"""
+    assert arr.dtype == 'bool'
+    return arr * 2 -1
+
+def a2b(arr: np.ndarray, binarize=False) -> str:
     """ array to bytes int """   
+    if binarize:
+        arr = _binarize(arr)
     return np.packbits(arr).tobytes()
 
 def b2a(arr: bytes, size: int) -> np.ndarray:
@@ -70,24 +79,28 @@ def b2a(arr: bytes, size: int) -> np.ndarray:
     for i in range(size):
         N = arr[len(arr) - 1 - i//8]
         out_arr[i] = bool((N >> (i%8)) & 1)
-    return out_arr[::-1]
+    return _unbinarize(out_arr[::-1])
 
-def main():
-    # if len(sys.argv)<2:
-    # print 'usage: regex.py <string>'
-    # exit(1)
+# [x] TODO make it work with -1 and 1 vals
+#  [x] change p4 to use -1 instead of 0, fix casting
+#  [x] apply hard-tanh
+#  [x] binarize python vals
+# [x] TODO verify that it works
+# [ ] TODO make readme
+# [ ] TODO make graphic explaining protocol
+# [ ] TODO start writeup
+
+def p4_binarized_linear_layer(W: np.ndarray, b: np.ndarray, x_mat: np.ndarray):
+    # assert ((W == 1) or (W == -1)).all()
+    # assert ((b == 1) or (x_mat == -1)).all()
+    # assert ((b == 1) or (x_mat == -1)).all()
+    # TODO add activation
+
+    # get interface & address
     iface = get_if()
     src_mac = get_if_hwaddr(iface)
 
-    # Create numpy arrays
-    W = np.identity(16, dtype=bool)
-    W[0] = 1
-    W[7] = 1
-    x_mat = np.random.rand(16).round().astype(bool)
-    b = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], dtype=bool)
-    init_result_mat = np.zeros(16, dtype=bool)
     # convert to bits
-    #pkt = pkt / Regex(current_state=state, W_num_bytes=len(W_bytes), x_num_bytes=len(x_bytes))
     step = 0
     in_pkt_result = None
     while True:
@@ -98,12 +111,11 @@ def main():
             pkt = pkt / in_pkt_result
         else:
             # first packet
-            # print('mat lengths:', len(W.tobytes()), len(b.tobytes()), len(x_mat.tobytes()))
             pkt = pkt / Perceptron(
                 step_acc=0, finished=0,
-                weight=a2b(W),
-                bias=a2b(b),
-                x=a2b(x_mat),
+                weight=a2b(W, binarize=True),
+                bias=a2b(b, binarize=True),
+                x=a2b(x_mat, binarize=True),
             )
         print(f"[sending packet #{step}...]")
         print_pkt(pkt)
@@ -122,15 +134,22 @@ def main():
             print(f"continuing step {step}")
     # TODO fix unpacking.
     print(in_pkt_result.x)
-    x_mat_result = b2a(in_pkt_result.x, 16)
-    # print('b =', b)
-    # print('W @ x_mat =', W @ x_mat)
-    print('result from switch:', x_mat_result)
-    true_val = W @ x_mat + b
-    print('W @ x_mat + b =', true_val)
-    print('eq:', (x_mat_result == true_val).sum() / len(x_mat_result))
-    # print('true_eq:', (x_mat_result == True).sum() / len(x_mat_result))
-    # breakpoint()
+    return b2a(in_pkt_result.x, 16)
+
+def main():
+    # Create numpy arrays
+    x = np.array([1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1], dtype=int)
+    # generate random W and b out of {-1, 1}
+    W = np.random.rand(16, 16).round().astype(int) * 2 - 1
+    b = np.random.rand(16).round().astype(int) * 2 - 1
+
+    # Call multiplication subroutine
+    x_result = p4_binarized_linear_layer(W, b, x)
+
+    print('result from switch:', x_result)
+    true_val = np.sign(W @ x + b)
+    print('W @ x + b =', true_val)
+    print('eq:', (x_result == true_val).sum() / len(x_result))
 
 def test_binary_methods():
     n = np.random.rand(16).round().astype(bool)
