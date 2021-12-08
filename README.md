@@ -7,3 +7,14 @@ The main files are:
 - `perceptron.p4`: implements the perceptron in P4. Most of the hard work is done in the ingress control.
 
 To run this, you need to have Petr4 and mininet installed. Run `make controller` in one window and `make run` in another. In the second window, type `h1 python perceptron.py` to generate random matrices and do the perceptron computation on them. It will print out to let you know if the switch got the same answer as calculated using numpy/linear algebra (it should be the same!). You can run the progam multiple times to see that it works with different randomly-generated values.
+
+**For more information, see report.pdf.**
+
+
+## Flowchart
+
+![flowchart](https://raw.githubusercontent.com/jxmorris12/p4-perceptron/master/figs/flowchart.png)
+
+## Headers example
+
+![headers](https://raw.githubusercontent.com/jxmorris12/p4-perceptron/master/figs/headers.png)
