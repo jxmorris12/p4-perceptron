@@ -81,15 +81,6 @@ def b2a(arr: bytes, size: int) -> np.ndarray:
         out_arr[i] = bool((N >> (i%8)) & 1)
     return _unbinarize(out_arr[::-1])
 
-# [x] TODO make it work with -1 and 1 vals
-#  [x] change p4 to use -1 instead of 0, fix casting
-#  [x] apply hard-tanh
-#  [x] binarize python vals
-# [x] TODO verify that it works
-# [ ] TODO make readme
-# [ ] TODO make graphic explaining protocol
-# [ ] TODO start writeup
-
 def p4_binarized_linear_layer(W: np.ndarray, b: np.ndarray, x_mat: np.ndarray):
     # assert ((W == 1) or (W == -1)).all()
     # assert ((b == 1) or (x_mat == -1)).all()
