@@ -26,7 +26,6 @@ struct headers {
 
 parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
     state start {
-        // TODO: fill in parser
         transition parse_ethernet;
     }
 
@@ -269,8 +268,6 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
             // </g16_tests>
 
             // 
-            // TODO apply activation func and/or batchnorm here?
-            // 
             // Set finished bit!
             hdr.perceptron.finished = 1;
         }
@@ -293,7 +290,6 @@ control MyComputeChecksum(inout headers hdr, inout metadata meta) {
 
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
-	    // TODO: fill in code to deparse packet
         packet.emit(hdr.ethernet);
         packet.emit(hdr.perceptron);
     }
